@@ -13,7 +13,7 @@ const schema = Joi.object({
     .min(3)
     .max(30)
     .required(),
-  password: Joi.string().min(8).required(),
+  password: Joi.string().trim().min(8).required(),
 });
 
 router.get('/', (req, res) => {
@@ -25,7 +25,7 @@ router.get('/', (req, res) => {
 router.get('/signup', async (req, res, next) => {
   try {
     //validate req.body
-    const result = await schema.validateAsync(req.body);
+    let user = await schema.validateAsync(req.body);
     //cehck is user exist in database
     const exist = await users.findOne({ username: req.body.username });
     if (exist) {
@@ -33,14 +33,9 @@ router.get('/signup', async (req, res, next) => {
       next(new Error('user aleady exist'));
     }
     //hash the user password using bcrypt
-    const hashedPassword = await bcrypt.hash(req.body.password, 12);
-    //create an object to hold the data we want to insert to database
-    const userObj = {
-      username: req.body.username,
-      password: hashedPassword,
-    };
-    //insert the user into the database
-    const user = await users.insert(userObj);
+    user.password = await bcrypt.hash(user.password, 12);
+    //save the user to database
+    user = await users.insert(user);
     //delete password from object sent to client
     delete user.password;
     //return a response to the client
