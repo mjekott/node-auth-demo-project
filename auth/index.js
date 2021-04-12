@@ -4,7 +4,7 @@ const Joi = require('joi');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const respond422 = (res, next) => {
+const respondError422 = (res, next) => {
   res.status(422);
   next(new Error('Unable to login'));
 };
@@ -54,20 +54,30 @@ router.post('/signup', async (req, res, next) => {
 });
 
 router.post('/login', async (req, res, next) => {
+  //validate client request
   const result = schema.validate(req.body);
-  if (result.error) respond422(res, next);
+  //check is user request is valid and return an error if not valid
+  if (result.error) return respondError422(res, next);
+  //check for user when user request is valid
   const user = await users.findOne({ username: req.body.username });
-  if (!user) respond422(res, next);
+  //check if we found a user and return an error if not found
+  if (!user) return respondError422(res, next);
+  //we check if password sent by user matches whats in the database
   const match = await bcrypt.compare(req.body.password, user.password);
-  if (!match) respond422(res, next);
+  //we check if we have a match or return an error if no match
+  if (!match) return respondError422(res, next);
+  //we create a payload for our token.i.e the user id and username
   const payload = {
     _id: user._id,
     username: user.username,
   };
+  //create a token with jwt.sign using the payload and secret and set expiring time of token
   const token = await jwt.sign(payload, process.env.TOKEN_SECRET, {
     expiresIn: '1d',
   });
-  if (!token) respond422(res, next);
+  //we check if there is a problem on gerating token and return an error
+  if (!token) return respondError422(res, next);
+  //return token ato client
   res.json({
     token,
   });
