@@ -1,10 +1,15 @@
 const express = require('express');
 const volleyball = require('volleyball');
+const cors = require('cors');
+require('dotenv').config();
+
 const authRouter = require('./auth/index');
 
 const app = express();
-app.use(express.json());
+
 app.use(volleyball);
+app.use(cors({ origin: 'http://localhost:8080' }));
+app.use(express.json());
 
 app.get('/', (req, res) => {
   res.json({
